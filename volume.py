@@ -160,8 +160,8 @@ class WindowsApplicationVolume(Volume):
         self.interface = session._ctl.QueryInterface(ISimpleAudioVolume)
 
     def get_name(self):
-        if self.session.Process.DisplayName:
-            return self.session.Process.DisplayName
+        if self.session.DisplayName:
+            return self.session.DisplayName
         else:
             return self.get_binary().split('.')[0]
 
