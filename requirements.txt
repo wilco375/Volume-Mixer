@@ -1,0 +1,2 @@
+pyserial
+pycaw; sys_platform == 'win32'
