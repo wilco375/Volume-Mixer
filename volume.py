@@ -156,10 +156,14 @@ class WindowsApplicationVolume(Volume):
         :param session: program session
         :type session: pycaw.utils.AudioSession
         """
+        self.session = session
         self.interface = session._ctl.QueryInterface(ISimpleAudioVolume)
 
     def get_name(self):
-        return self.session.Process.DisplayName
+        if self.session.Process.DisplayName:
+            return self.session.Process.DisplayName
+        else:
+            return self.get_binary().split('.')[0]
 
     def get_binary(self):
         return self.session.Process.name()

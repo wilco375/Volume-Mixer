@@ -13,7 +13,7 @@ if __name__ == "__main__":
     start_parser = subparsers.add_parser('start', help='Start communication with device')
     start_parser.add_argument('list-volumes', action='store_true', help='Use stdin/stdout instead of serial')
     start_parser.add_argument('start', action='store_true', help='Use stdin/stdout instead of serial')
-    start_parser.add_argument('--port', type=str, nargs=1, help='Serial port to use')
+    start_parser.add_argument('--port', type=str, help='Serial port to use')
     start_parser.add_argument('--display', choices=['all', 'apps', 'master'], default='all',
                         help="Volumes to display on the device. Either both master and applications or just applications or just master. Default: 'all'")
     start_parser.add_argument('--debug', action='store_true', help='Use stdin/stdout instead of serial')
@@ -31,6 +31,7 @@ if __name__ == "__main__":
         for volume in volumes:
             print(f"Name: {volume.get_name()}")
             print(f"Display name: {volume.get_short_name()}")
+            print(f"Binary: {volume.get_binary()}")
             print(f"Volume: {volume.get_volume()}")
             print(f"Type: {volume.get_type()}\n")
 
