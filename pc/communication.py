@@ -13,12 +13,13 @@ class Communicator:
         :param config: configuration
         :type config: dict
         """
+        self.enabled = False
         self.mode = 'stdin' if config['debug'] else 'serial'
         self.provider = VolumeProvider(config)
 
         if self.mode == 'serial':
             port = config['port'] if config['port'] else self.get_ports()[0]
-            self.serial = serial.Serial(port, baudrate=115200, timeout=10)
+            self.serial = serial.Serial(port, baudrate=115200, timeout=5)
 
     @staticmethod
     def get_ports():
@@ -34,7 +35,8 @@ class Communicator:
         self.enabled = True
         self._send_applications()
         while self.enabled:
-            self._receive_volume()
+            if self._receive_volume():
+                self._send_applications()
 
     def stop_communication(self):
         """
@@ -65,15 +67,20 @@ class Communicator:
     def _receive_volume(self):
         """
         Receive volume change in the format "<program index (0+)>,<program volume (0-100)>"
+        :return: True if timeout was reached, False otherwise
+        :rtype: bool
         """
         try:
             if self.mode == 'serial':
                 volume = self.serial.readline().decode()
             else:
                 volume = input()
+            if volume == '':
+                # Probably timed out
+                return True
             program = int(volume.split(',')[0])
             program_volume = int(volume.split(',')[1])
             self._get_volumes()[program].set_volume(program_volume)
         except (UnicodeDecodeError, IndexError, ValueError, OSError):
             pass
-
+        return False
