@@ -23,7 +23,7 @@ The program has three modes:
 
 Details of the commands can be viewed by adding `--help`
 
-## Configuration
+### Configuration
 The applications displayed on the mixer device can be further configured in the `config.yaml` file. 
 If this does not exist yet, copy `config.example.yaml`. The example config file contains comments describing each option. 
 
