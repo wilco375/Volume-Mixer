@@ -126,7 +126,7 @@ class WindowsMasterVolume(Volume):
     def set_volume(self, volume):
         try:
             self.interface.SetMute(0, None)
-            self.interface.SetMasterVolumeLevelScalar(volume / 100, None)
+            self.interface.SetMasterVolumeLevelScalar(min(1.0, max(0.0, volume / 100)), None)
         except COMError:
             pass
 
@@ -148,7 +148,7 @@ class PulseAudioMasterVolume(Volume):
                 return int(line.split("%")[0].split(" ")[-1])
 
     def set_volume(self, volume):
-        os.system(f"pactl set-sink-volume @DEFAULT_SINK@ {volume}%")
+        os.system(f"pactl set-sink-volume @DEFAULT_SINK@ {min(100, max(0, volume))}%")
 
     def get_type(self):
         return "master"
@@ -180,7 +180,7 @@ class WindowsApplicationVolume(Volume):
     def set_volume(self, volume):
         try:
             self.interface.SetMute(0, None)
-            self.interface.SetMasterVolume(volume / 100, None)
+            self.interface.SetMasterVolume(min(1.0, max(0.0, volume / 100)), None)
         except COMError:
             pass
 
@@ -238,7 +238,7 @@ class PulseAudioApplicationVolume(Volume):
                 return int(line.split("%")[0].split(" ")[-1])
 
     def set_volume(self, volume):
-        os.system("pactl set-sink-input-volume {} {}%".format(self.input, volume))
+        os.system(f"pactl set-sink-input-volume {self.input} {min(100, max(0, volume))}%")
 
     def get_type(self):
         return "application"
