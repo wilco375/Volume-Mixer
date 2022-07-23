@@ -16,15 +16,15 @@ class Communicator:
         self.provider = VolumeProvider()
 
         if self.mode == 'serial':
-            self.serial = serial.Serial(config['serial_port'], timeout=10)
+            self.serial = serial.Serial(config['serial_port'], baudrate=115200, timeout=10)
 
     def start_communication(self):
         """
         Start serial communication with device
         """
         self.enabled = True
+        self._send_applications()
         while self.enabled:
-            self._send_applications()
             self._receive_volume()
 
     def stop_communication(self):
@@ -69,8 +69,8 @@ class Communicator:
             program = int(volume.split(',')[0])
             program_volume = int(volume.split(',')[1])
             self._get_volumes()[program].set_volume(program_volume)
-        except (UnicodeDecodeError, IndexError):
-            print("Something went wrong when receiving volume")
+        except (UnicodeDecodeError, IndexError, ValueError, OSError):
+            pass
 
     def _format_application_name(self, name):
         """

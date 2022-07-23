@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import sys
 
 if sys.platform == 'win32':
+    from _ctypes import COMError
     from ctypes import POINTER, cast
     from comtypes import CLSCTX_ALL
     from pycaw.pycaw import AudioUtilities, ISimpleAudioVolume, IAudioEndpointVolume
@@ -123,8 +124,11 @@ class WindowsMasterVolume(Volume):
         return round(self.interface.GetMasterVolumeLevelScalar() * 100)
 
     def set_volume(self, volume):
-        self.interface.SetMute(0, None)
-        self.interface.SetMasterVolumeLevelScalar(volume / 100, None)
+        try:
+            self.interface.SetMute(0, None)
+            self.interface.SetMasterVolumeLevelScalar(volume / 100, None)
+        except COMError:
+            pass
 
     def get_type(self):
         return "master"
@@ -174,8 +178,11 @@ class WindowsApplicationVolume(Volume):
         return round(self.interface.GetMasterVolume() * 100)
 
     def set_volume(self, volume):
-        self.interface.SetMute(0, None)
-        self.interface.SetMasterVolume(volume / 100, None)
+        try:
+            self.interface.SetMute(0, None)
+            self.interface.SetMasterVolume(volume / 100, None)
+        except COMError:
+            pass
 
     def get_type(self):
         return "application"
