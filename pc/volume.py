@@ -112,7 +112,7 @@ class VolumeProvider:
         applications_binaries = [application.get_binary() for application in applications]
         ordered_applications = []
         for app in self.config['priority']:
-            if app in self.config['priority']:
+            if app in applications_binaries:
                 ordered_applications.append(applications[applications_binaries.index(app)])
         for application in applications:
             if application not in ordered_applications and application.get_binary() not in self.config['blacklist']:
