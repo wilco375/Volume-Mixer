@@ -28,4 +28,27 @@ The applications displayed on the mixer device can be further configured in the 
 If this does not exist yet, copy `config.example.yaml`. The example config file contains comments describing each option. 
 
 ## Device side
-TODO
+### Prerequisites
+Install Arduino IDE, and the RotaryEncoder and ezButton libraries within the Arduino IDE.
+
+###  Pinout
+| Pin | Function |
+| --- | -------- |
+| 2  | Display D7 |
+| 3  | Display D6 |
+| 4  | Display D5 |
+| 5  | Display D4 |
+| 6  | Rotary Encoder 1 Button |
+| 7  | Rotary Encoder 2 Button |
+| 8  | Rotary Encoder 3 Button |
+| 11 | Display EN |
+| 12 | Display RS |
+| A0 | Rotary Encoder 1 A |
+| A1 | Rotary Encoder 1 B |
+| A2 | Rotary Encoder 2 A |
+| A3 | Rotary Encoder 2 B |
+| A4 | Rotary Encoder 3 A |
+| A5 | Rotary Encoder 3 B |
+
+### Setup
+Simply upload the sketch in the `device` folder to the Arduino nano.
