@@ -1,0 +1,23 @@
+# Display the master volume
+master: true
+
+# Display applications
+applications: true
+
+# Number of applications to send to the display
+max_apps: 3
+
+# Convert first letter of display names to uppercase
+capitalize_names: true
+
+# Blacklisted applications that should not be displayed
+blacklist:
+- ShellExperienceHost.exe
+
+# Overwrite the display name for an application
+display_names:
+  conhost.exe: CMD
+
+# Prioritize to show certain applications
+priority:
+- firefox.exe

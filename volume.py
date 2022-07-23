@@ -11,6 +11,13 @@ elif sys.platform == 'linux':
 
 
 class Volume(ABC):
+    def __init__(self, config):
+        """
+        :param config: configuration
+        :type config: dict
+        """
+        self.config = config
+
     @abstractmethod
     def get_name(self):
         """
@@ -20,8 +27,18 @@ class Volume(ABC):
         """
         return NotImplementedError
 
-    def get_short_name(self):
-        return self.get_name()[0:4]
+    def get_display_name(self):
+        """
+        Get the display name of the program
+        """
+        if self.get_binary() in self.config['display_names']:
+            name = self.config['display_names'][self.get_binary()]
+        else:
+            name = self.get_name()
+        shorted = name[0:4]
+        if self.config['capitalize_names']:
+            shorted = shorted.capitalize()
+        return shorted.replace(',', '')
 
     @abstractmethod
     def get_binary(self):
@@ -67,9 +84,14 @@ class Volume(ABC):
 
 
 class VolumeProvider:
-    def __init__(self):
+    def __init__(self, config):
+        """
+        :param config: configuration
+        :type config: dict
+        """
         self.is_windows = sys.platform == 'win32'
         self.is_linux = sys.platform == 'linux'
+        self.config = config
 
     def get_applications(self):
         """
@@ -78,12 +100,24 @@ class VolumeProvider:
         :rtype: [Volume]
         """
         if self.is_windows:
-            return [WindowsApplicationVolume(session) for session in AudioUtilities.GetAllSessions() if session.Process]
+            applications = [WindowsApplicationVolume(self.config, session)
+                            for session in AudioUtilities.GetAllSessions() if session.Process]
         elif self.is_linux:
             sink_inputs = [line for line in os.popen('pactl list sink-inputs').read().split('\n') if "Sink Input" in line]
-            return [PulseAudioApplicationVolume(int(input.split('#')[1])) for input in sink_inputs]
+            applications = [PulseAudioApplicationVolume(self.config, int(input.split('#')[1]))
+                            for input in sink_inputs]
         else:
             return NotImplementedError
+
+        applications_binaries = [application.get_binary() for application in applications]
+        ordered_applications = []
+        for app in self.config['priority']:
+            if app in self.config['priority']:
+                ordered_applications.append(applications[applications_binaries.index(app)])
+        for application in applications:
+            if application not in ordered_applications and application.get_binary() not in self.config['blacklist']:
+                ordered_applications.append(application)
+        return ordered_applications
 
     @abstractmethod
     def get_master(self):
@@ -93,9 +127,9 @@ class VolumeProvider:
         :rtype: Volume
         """
         if self.is_windows:
-            return WindowsMasterVolume()
+            return WindowsMasterVolume(self.config)
         elif self.is_linux:
-            return PulseAudioMasterVolume()
+            return PulseAudioMasterVolume(self.config)
 
     def get_all(self):
         """
@@ -103,11 +137,25 @@ class VolumeProvider:
         :return: all active volumes
         :rtype: [Volume]
         """
-        return [self.get_master()] + self.get_applications()
+        volumes = []
+        if self.config['master']:
+            volumes.append(self.get_master())
+        if self.config['applications']:
+            volumes.extend(self.get_applications())
+        return volumes
+
+    def get_display(self):
+        """
+        Get all active volumes to display
+        :return: all active volumes
+        :rtype: [Volume]
+        """
+        return self.get_all()[0:self.config['display_limit']]
 
 
 class WindowsMasterVolume(Volume):
-    def __init__(self):
+    def __init__(self, config):
+        super().__init__(config)
         devices = AudioUtilities.GetSpeakers()
         interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         self.interface = cast(interface, POINTER(IAudioEndpointVolume))
@@ -155,16 +203,19 @@ class PulseAudioMasterVolume(Volume):
 
 
 class WindowsApplicationVolume(Volume):
-    def __init__(self, session):
+    def __init__(self, config, session):
         """
+        :param config: configuration
+        :type config: dict
         :param session: program session
         :type session: pycaw.utils.AudioSession
         """
+        super().__init__(config)
         self.session = session
         self.interface = session._ctl.QueryInterface(ISimpleAudioVolume)
 
     def get_name(self):
-        if self.session.DisplayName:
+        if self.session.DisplayName and self.session.DisplayName[0] != '@':
             return self.session.DisplayName
         else:
             return self.get_binary().split('.')[0]
@@ -189,11 +240,14 @@ class WindowsApplicationVolume(Volume):
 
 
 class PulseAudioApplicationVolume(Volume):
-    def __init__(self, input):
+    def __init__(self, config, input):
         """
+        :param config: configuration
+        :type config: dict
         :param input: sink input
         :type input: int
         """
+        super().__init__(config)
         self.input = input
         self.name = None
         self.binary = None

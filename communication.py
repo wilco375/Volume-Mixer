@@ -1,11 +1,13 @@
 from volume import VolumeProvider
 import serial
+from serial.tools.list_ports import comports
 
 
 class Communicator:
     """
     Communicator class
     """
+
     def __init__(self, config):
         """
         :param config: configuration
@@ -13,10 +15,18 @@ class Communicator:
         """
         self.send = config['display']
         self.mode = 'stdin' if config['debug'] else 'serial'
-        self.provider = VolumeProvider()
+        self.provider = VolumeProvider(config)
 
         if self.mode == 'serial':
-            self.serial = serial.Serial(config['serial_port'], baudrate=115200, timeout=10)
+            port = config['serial_port'] if config['serial_port'] else self.get_ports()[0]
+            self.serial = serial.Serial(port, baudrate=115200, timeout=10)
+
+    @staticmethod
+    def get_ports():
+        """
+        Get all available serial ports
+        """
+        return [port.device for port in comports()]
 
     def start_communication(self):
         """
@@ -39,18 +49,14 @@ class Communicator:
         :return: volumes
         :rtype: [Volume]
         """
-        if self.send == 'apps':
-            return self.provider.get_applications()
-        elif self.send == 'master':
-            return [self.provider.get_master()]
-        else:
-            return self.provider.get_all()
+        return self.provider.get_display()
 
     def _send_applications(self):
         """
         Send active sound applications and their volumes in format "<program name>,<program volume (0-100)>,<program name>,<program volume (0-100)>,..."
         """
-        data = [f"{self._format_application_name(volume.get_short_name())},{volume.get_volume()}" for volume in self._get_volumes()]
+        data = [f"{self._format_application_name(volume.get_display_name())},{volume.get_volume()}"
+                for volume in self._get_volumes()]
         data = ','.join(data) + '\n'
         if self.mode == 'serial':
             self.serial.write(data.encode())
@@ -72,8 +78,3 @@ class Communicator:
         except (UnicodeDecodeError, IndexError, ValueError, OSError):
             pass
 
-    def _format_application_name(self, name):
-        """
-        Format application name to show on the display of the device
-        """
-        return name.replace(',', ' ')

@@ -1,2 +1,3 @@
 pyserial
+pyyaml
 pycaw; sys_platform == 'win32'
