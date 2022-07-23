@@ -150,7 +150,7 @@ class VolumeProvider:
         :return: all active volumes
         :rtype: [Volume]
         """
-        return self.get_all()[0:self.config['display_limit']]
+        return self.get_all()[0:self.config['max_apps']]
 
 
 class WindowsMasterVolume(Volume):
