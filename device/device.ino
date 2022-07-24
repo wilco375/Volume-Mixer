@@ -69,10 +69,13 @@ void loop()
     for (int i = 0; i < NUM_ENCODERS; i++) {
       if (i * 2 + 1 < found) { 
         hasItem[i] = true;  
-        lcd.setCursor(i * 6, 0);
         String name = data.substring(splitIndices[i * 2] + 1, splitIndices[i * 2 + 1]);
         String volume = data.substring(splitIndices[i * 2 + 1] + 1, splitIndices[i * 2 + 2]);
+        lcd.setCursor(i * 6, 0);
         lcd.print(name);
+        lcd.setCursor(i * 6, 1);
+        sprintf(buff, "%3d%%", volume);
+        lcd.print(buff);
         encoders[i]->setPosition(volume.toInt());
       } else {
         // Make white
