@@ -29,12 +29,13 @@ If this does not exist yet, copy `config.example.yaml`. The example config file 
 
 ### Autostart
 #### Windows
-1. Press the keyboard shortcut Win+R and enter `shell:startup`.
-2. In the folder that opens, create a `volume-mixer.bat` file.
-3. Open the `volume-mixer.bat` file in a text editor (e.g. notepad).
-4. Take note of the path of the `main.py` file in the `pc` folder. In the bat file, insert the following line:
-    `python "<path-to-volume-mixer>\pc\main.py" start`, e.g. `python "C:\Users\<user>\Downloads\Volume-Mixer\pc\main.py" start`.
-5. Save the file and close it.
+1. Go to the `pc` folder, right-click on `main.py` and click 'Create shortcut'.
+2. Press the keyboard shortcut Win+R and enter `shell:startup`.
+3. Move the created `main.py` shortcut to the startup folder.
+4. Right-click the shortcut, click 'Properties'.
+5. In the 'Target' field, add ` start` after the path, so it becomes `"C:\...\pc\main.py" start`
+6. Change the 'Run' field to 'Minimized'.
+7. Click 'OK'.
 
 #### Linux
 1. Add a cronjob by running `crontab -e`.
