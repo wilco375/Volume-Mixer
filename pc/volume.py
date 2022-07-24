@@ -156,9 +156,11 @@ class VolumeProvider:
             raise NotImplementedError
         return self.master
 
-    def get_all(self):
+    def get_all(self, cache=True):
         """
         Get all active volumes
+        :param cache: use cached list of applications if available
+        :type cache: bool
         :return: all active volumes
         :rtype: [Volume]
         """
@@ -166,12 +168,14 @@ class VolumeProvider:
         if self.config['master']:
             volumes.append(self.get_master())
         if self.config['applications']:
-            volumes.extend(self.get_applications())
+            volumes.extend(self.get_applications(cache))
         return volumes
 
-    def get_display(self):
+    def get_display(self, cache=True):
         """
         Get all active volumes to display
+        :param cache: use cached list of applications if available
+        :type cache: bool
         :return: all active volumes
         :rtype: [Volume]
         """

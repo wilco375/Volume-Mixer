@@ -59,20 +59,22 @@ class Communicator:
         """
         self.enabled = False
 
-    def _get_volumes(self):
+    def _get_volumes(self, cache=True):
         """
         Get all volumes to send
+        :param cache: use cached list of applications if available
+        :type cache: bool
         :return: volumes
         :rtype: [Volume]
         """
-        return self.provider.get_display()
+        return self.provider.get_display(cache)
 
     def _send_applications(self):
         """
         Send active sound applications and their volumes in format "<program name>,<program volume (0-100)>,<program name>,<program volume (0-100)>,..."
         """
         data = [f"{volume.get_display_name()},{volume.get_volume()}"
-                for volume in self._get_volumes()]
+                for volume in self._get_volumes(False)]
         data = ','.join(data) + '\n'
         if self.mode == 'serial':
             self.serial.write(data.encode())
