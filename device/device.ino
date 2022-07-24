@@ -74,7 +74,7 @@ void loop()
         lcd.setCursor(i * 6, 0);
         lcd.print(name);
         lcd.setCursor(i * 6, 1);
-        sprintf(buff, "%3d%%", volume);
+        sprintf(buff, "%3d%%", volume.toInt());
         lcd.print(buff);
         encoders[i]->setPosition(volume.toInt());
       } else {

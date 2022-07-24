@@ -38,7 +38,7 @@ class Volume(ABC):
         shorted = name[0:4]
         if self.config['capitalize_names']:
             shorted = shorted.capitalize()
-        return shorted.replace(',', '')
+        return shorted.replace(',', '').ljust(4, ' ')
 
     @abstractmethod
     def get_binary(self):
