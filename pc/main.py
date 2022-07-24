@@ -2,8 +2,8 @@ from communication import Communicator
 from volume import VolumeProvider
 import argparse
 import yaml
-import os
 import shutil
+from os import path
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Volume mixer')
@@ -20,9 +20,10 @@ if __name__ == "__main__":
     start_parser.add_argument('--debug', action='store_true', help='Use stdin/stdout instead of serial.')
 
     args = parser.parse_args()
-    if args.config is None and not os.path.exists('./config.yaml'):
-        shutil.copyfile('./config.example.yaml', './config.yaml')
-    with open(args.config if args.config else './config.yaml', 'r') as f:
+    local_config = path.join(path.dirname(__file__), 'config.yaml')
+    if args.config is None and not path.exists(local_config):
+        shutil.copyfile(path.join(path.dirname(__file__), 'config.yaml.example'), local_config)
+    with open(args.config if args.config else local_config, 'r') as f:
         config = dict(yaml.safe_load(f))
     if not config:
         raise Exception('Invalid configuration file.')
