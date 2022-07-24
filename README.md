@@ -33,13 +33,13 @@ If this does not exist yet, copy `config.example.yaml`. The example config file 
 2. In the folder that opens, create a `volume-mixer.bat` file.
 3. Open the `volume-mixer.bat` file in a text editor (e.g. notepad).
 4. Take note of the path of the `main.py` file in the `pc` folder. In the bat file, insert the following line:
-    `python "<path-to-volume-mixer>\pc\main.py"`, e.g. `python "C:\Users\<user>\Downloads\Volume-Mixer\pc\main.py"`.
+    `python "<path-to-volume-mixer>\pc\main.py" start`, e.g. `python "C:\Users\<user>\Downloads\Volume-Mixer\pc\main.py" start`.
 5. Save the file and close it.
 
 #### Linux
 1. Add a cronjob by running `crontab -e`.
 2. Take note of the path of the `main.py` file in the `pc` folder. In the cronjob, insert the following line:
-    `@reboot python "<path-to-volume-mixer>/pc/main.py" &`, e.g. `@reboot python "/home/<user>/Downloads/Volume-Mixer/pc/main.py" &`, and save it.
+    `@reboot python "<path-to-volume-mixer>/pc/main.py" start &`, e.g. `@reboot python "/home/<user>/Downloads/Volume-Mixer/pc/main.py" start &`, and save it.
 
 ## Device side
 ### Prerequisites
