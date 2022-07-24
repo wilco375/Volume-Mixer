@@ -81,6 +81,6 @@ class Communicator:
             program = int(volume.split(',')[0])
             program_volume = int(volume.split(',')[1])
             self._get_volumes()[program].set_volume(program_volume)
-        except (UnicodeDecodeError, IndexError, ValueError, OSError):
+        except (UnicodeDecodeError, IndexError, ValueError):
             pass
         return False

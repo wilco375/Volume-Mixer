@@ -92,22 +92,38 @@ class VolumeProvider:
         self.is_windows = sys.platform == 'win32'
         self.is_linux = sys.platform == 'linux'
         self.config = config
+        self.master = None
+        self.applications = None
 
-    def get_applications(self):
+    def get_applications(self, cache=True):
         """
         Get all active applications outputting volume
+        :param cache: use cached list of applications if available
+        :type cache: bool
         :return: application volumes
         :rtype: [Volume]
         """
+        if cache and self.applications is not None:
+            return self.applications
+
         if self.is_windows:
-            applications = [WindowsApplicationVolume(self.config, session)
-                            for session in AudioUtilities.GetAllSessions() if session.Process]
+            applications = self.applications if self.applications is not None else []
+            retry = 0
+            while retry < 3:
+                try:
+                    applications = [WindowsApplicationVolume(self.config, session)
+                                    for session in AudioUtilities.GetAllSessions() if session.Process]
+                    break
+                except (COMError, OSError):
+                    # Sometimes, getting the sessions fails
+                    retry += 1
+
         elif self.is_linux:
             sink_inputs = [line for line in os.popen('pactl list sink-inputs').read().split('\n') if "Sink Input" in line]
             applications = [PulseAudioApplicationVolume(self.config, int(input.split('#')[1]))
                             for input in sink_inputs]
         else:
-            return NotImplementedError
+            raise NotImplementedError
 
         applications_binaries = [application.get_binary() for application in applications]
         ordered_applications = []
@@ -117,6 +133,9 @@ class VolumeProvider:
         for application in applications:
             if application not in ordered_applications and application.get_binary() not in self.config['blacklist']:
                 ordered_applications.append(application)
+
+        self.applications = ordered_applications
+
         return ordered_applications
 
     @abstractmethod
@@ -126,10 +145,16 @@ class VolumeProvider:
         :return: master volume
         :rtype: Volume
         """
+        if self.master is not None:
+            return self.master
+
         if self.is_windows:
-            return WindowsMasterVolume(self.config)
+            self.master = WindowsMasterVolume(self.config)
         elif self.is_linux:
-            return PulseAudioMasterVolume(self.config)
+            self.master = PulseAudioMasterVolume(self.config)
+        else:
+            raise NotImplementedError
+        return self.master
 
     def get_all(self):
         """
@@ -159,6 +184,7 @@ class WindowsMasterVolume(Volume):
         devices = AudioUtilities.GetSpeakers()
         interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         self.interface = cast(interface, POINTER(IAudioEndpointVolume))
+        self.volume = 0
 
     def get_name(self):
         return "Main"
@@ -167,16 +193,21 @@ class WindowsMasterVolume(Volume):
         return None
 
     def get_volume(self):
-        if self.interface.GetMute() == 1:
-            return 0
-        return round(self.interface.GetMasterVolumeLevelScalar() * 100)
+        try:
+            if self.interface.GetMute() == 1:
+                self.volume = 0
+            else:
+                self.volume = round(self.interface.GetMasterVolumeLevelScalar() * 100)
+        except (COMError, OSError):
+            pass
+        return self.volume
 
     def set_volume(self, volume):
         try:
             self.interface.SetMute(0, None)
             self.interface.SetMasterVolumeLevelScalar(min(1.0, max(0.0, volume / 100)), None)
-        except COMError:
-            pass
+        except (COMError, OSError):
+            return False
 
     def get_type(self):
         return "master"
@@ -213,27 +244,49 @@ class WindowsApplicationVolume(Volume):
         super().__init__(config)
         self.session = session
         self.interface = session._ctl.QueryInterface(ISimpleAudioVolume)
+        self.volume = 0
+        self.name = None
+        self.binary = None
 
     def get_name(self):
-        if self.session.DisplayName and self.session.DisplayName[0] != '@':
-            return self.session.DisplayName
-        else:
-            return self.get_binary().split('.')[0]
+        if self.name is not None:
+            return self.name
+
+        try:
+            if self.session.DisplayName and self.session.DisplayName[0] != '@':
+                self.name = self.session.DisplayName
+            else:
+                self.name = self.get_binary().split('.')[0]
+        except (COMError, OSError):
+            pass
+        return self.name
 
     def get_binary(self):
-        return self.session.Process.name()
+        if self.binary is not None:
+            return self.binary
+
+        try:
+            self.binary = self.session.Process.name()
+        except (COMError, OSError):
+            pass
+        return self.binary
 
     def get_volume(self):
-        if self.interface.GetMute() == 1:
-            return 0
-        return round(self.interface.GetMasterVolume() * 100)
+        try:
+            if self.interface.GetMute() == 1:
+                self.volume = 0
+            else:
+                self.volume = round(self.interface.GetMasterVolume() * 100)
+        except (COMError, OSError):
+            pass
+        return self.volume
 
     def set_volume(self, volume):
         try:
             self.interface.SetMute(0, None)
             self.interface.SetMasterVolume(min(1.0, max(0.0, volume / 100)), None)
-        except COMError:
-            pass
+        except (COMError, OSError):
+            return False
 
     def get_type(self):
         return "application"
