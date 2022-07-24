@@ -1,5 +1,6 @@
 from volume import VolumeProvider
 import serial
+import time
 from serial.tools.list_ports import comports
 
 
@@ -16,10 +17,8 @@ class Communicator:
         self.enabled = False
         self.mode = 'stdin' if config['debug'] else 'serial'
         self.provider = VolumeProvider(config)
-
-        if self.mode == 'serial':
-            port = config['port'] if config['port'] else self.get_ports()[0]
-            self.serial = serial.Serial(port, baudrate=115200, timeout=5)
+        self.serial = None
+        self.port = config['port']
 
     @staticmethod
     def get_ports():
@@ -33,10 +32,26 @@ class Communicator:
         Start serial communication with device
         """
         self.enabled = True
-        self._send_applications()
         while self.enabled:
-            if self._receive_volume():
-                self._send_applications()
+            try:
+                if self.mode == 'serial' and self.serial is None:
+                    port = self.port
+                    if port is None:
+                        ports = self.get_ports()
+                        if len(ports) > 0:
+                            port = ports[0]
+
+                        self.port = port
+                    self.serial = serial.Serial(self.port, baudrate=115200, timeout=5)
+
+                    self._send_applications()
+                    while self.enabled:
+                        if self._receive_volume():
+                            self._send_applications()
+            except serial.SerialException:
+                print("Error: No device found. Trying again after 10s...")
+                self.serial = None
+                time.sleep(10)
 
     def stop_communication(self):
         """
