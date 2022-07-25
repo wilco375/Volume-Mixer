@@ -65,5 +65,7 @@ Install Arduino IDE, and the RotaryEncoder and ezButton libraries within the Ard
 | A4 | Rotary Encoder 3 A |
 | A5 | Rotary Encoder 3 B |
 
+![Schematic](schematic.jpg)
+
 ### Setup
 Simply upload the sketch in the `device` folder to the Arduino nano.
