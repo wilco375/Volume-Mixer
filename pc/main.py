@@ -22,7 +22,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     local_config = path.join(path.dirname(__file__), 'config.yaml')
     if args.config is None and not path.exists(local_config):
-        shutil.copyfile(path.join(path.dirname(__file__), 'config.yaml.example'), local_config)
+        shutil.copyfile(path.join(path.dirname(__file__), 'config.example.yaml'), local_config)
     with open(args.config if args.config else local_config, 'r') as f:
         config = dict(yaml.safe_load(f))
     if not config:
