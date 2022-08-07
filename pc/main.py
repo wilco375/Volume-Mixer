@@ -50,3 +50,6 @@ if __name__ == "__main__":
 
         comm = Communicator(config)
         comm.start_communication()
+
+    else:
+        parser.print_help()
