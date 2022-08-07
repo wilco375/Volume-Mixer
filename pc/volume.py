@@ -106,25 +106,36 @@ class VolumeProvider:
         if cache and self.applications is not None:
             return self.applications
 
+        # Get all applications while combining multiple instances of the same application
+        applications = {}
         if self.is_windows:
-            applications = self.applications if self.applications is not None else []
             retry = 0
             while retry < 3:
                 try:
-                    applications = [WindowsApplicationVolume(self.config, session)
-                                    for session in AudioUtilities.GetAllSessions() if session.Process]
+                    for session in AudioUtilities.GetAllSessions():
+                        if session.Process:
+                            volume = WindowsApplicationVolume(self.config, session)
+                            if volume.get_binary() not in applications:
+                                applications[volume.get_binary()] = volume
+                            else:
+                                applications[volume.get_binary()].add_application(session)
                     break
                 except (COMError, OSError):
                     # Sometimes, getting the sessions fails
                     retry += 1
-
         elif self.is_linux:
             sink_inputs = [line for line in os.popen('pactl list sink-inputs').read().split('\n') if "Sink Input" in line]
-            applications = [PulseAudioApplicationVolume(self.config, int(input.split('#')[1]))
-                            for input in sink_inputs]
+            for sink_input in sink_inputs:
+                volume = PulseAudioApplicationVolume(self.config, int(sink_input.split('#')[1]))
+                if volume.get_binary() not in applications:
+                    applications[volume.get_binary()] = volume
+                else:
+                    applications[volume.get_binary()].add_application(sink_input)
         else:
             raise NotImplementedError
+        applications = list(applications.values())
 
+        # Order applications to priority and apply blacklist
         applications_binaries = [application.get_binary() for application in applications]
         ordered_applications = []
         for app in self.config['priority']:
@@ -246,8 +257,8 @@ class WindowsApplicationVolume(Volume):
         :type session: pycaw.utils.AudioSession
         """
         super().__init__(config)
-        self.session = session
-        self.interface = session._ctl.QueryInterface(ISimpleAudioVolume)
+        self.sessions = [session]
+        self.interfaces = [session._ctl.QueryInterface(ISimpleAudioVolume)]
         self.volume = 0
         self.name = None
         self.binary = None
@@ -257,8 +268,8 @@ class WindowsApplicationVolume(Volume):
             return self.name
 
         try:
-            if self.session.DisplayName and self.session.DisplayName[0] != '@':
-                self.name = self.session.DisplayName
+            if self.sessions[0].DisplayName and self.sessions[0].DisplayName[0] != '@':
+                self.name = self.sessions[0].DisplayName
             else:
                 self.name = self.get_binary().split('.')[0]
         except (COMError, OSError):
@@ -270,30 +281,35 @@ class WindowsApplicationVolume(Volume):
             return self.binary
 
         try:
-            self.binary = self.session.Process.name()
+            self.binary = self.sessions[0].Process.name()
         except (COMError, OSError):
             pass
         return self.binary
 
     def get_volume(self):
         try:
-            if self.interface.GetMute() == 1:
+            if self.interfaces[0].GetMute() == 1:
                 self.volume = 0
             else:
-                self.volume = round(self.interface.GetMasterVolume() * 100)
+                self.volume = round(self.interfaces[0].GetMasterVolume() * 100)
         except (COMError, OSError):
             pass
         return self.volume
 
     def set_volume(self, volume):
-        try:
-            self.interface.SetMute(0, None)
-            self.interface.SetMasterVolume(min(1.0, max(0.0, volume / 100)), None)
-        except (COMError, OSError):
-            return False
+        for interface in self.interfaces:
+            try:
+                interface.SetMute(0, None)
+                interface.SetMasterVolume(min(1.0, max(0.0, volume / 100)), None)
+            except (COMError, OSError):
+                return False
 
     def get_type(self):
         return "application"
+
+    def add_application(self, session):
+        self.sessions.append(session)
+        self.interfaces.append(session._ctl.QueryInterface(ISimpleAudioVolume))
 
 
 class PulseAudioApplicationVolume(Volume):
@@ -305,7 +321,7 @@ class PulseAudioApplicationVolume(Volume):
         :type input: int
         """
         super().__init__(config)
-        self.input = input
+        self.inputs = [input]
         self.name = None
         self.binary = None
 
@@ -316,7 +332,7 @@ class PulseAudioApplicationVolume(Volume):
             sinks = os.popen("pactl list sink-inputs").read()
             is_application = False
             for line in sinks.split("\n"):
-                if f"Sink Input #{self.input}" in line:
+                if f"Sink Input #{self.inputs[0]}" in line:
                     is_application = True
 
                 if "application.name = " in line and is_application:
@@ -331,7 +347,7 @@ class PulseAudioApplicationVolume(Volume):
             sinks = os.popen("pactl list sink-inputs").read()
             is_application = False
             for line in sinks.split("\n"):
-                if f"Sink Input #{self.input}" in line:
+                if f"Sink Input #{self.inputs[0]}" in line:
                     is_application = True
 
                 if "application.process.binary = " in line and is_application:
@@ -342,14 +358,18 @@ class PulseAudioApplicationVolume(Volume):
         sinks = os.popen("pactl list sink-inputs").read()
         is_application = False
         for line in sinks.split("\n"):
-            if f"Sink Input #{self.input}" in line:
+            if f"Sink Input #{self.inputs[0]}" in line:
                 is_application = True
 
             if "Volume:" in line and is_application:
                 return int(line.split("%")[0].split(" ")[-1])
 
     def set_volume(self, volume):
-        os.system(f"pactl set-sink-input-volume {self.input} {min(100, max(0, volume))}%")
+        for input in self.inputs:
+            os.system(f"pactl set-sink-input-volume {input} {min(100, max(0, volume))}%")
 
     def get_type(self):
         return "application"
+
+    def add_application(self, input):
+        self.inputs.append(input)
