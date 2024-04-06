@@ -12,10 +12,7 @@ if __name__ == "__main__":
 
     subparsers.add_parser('list-applications', help='List all found programs and their volumes.')
 
-    subparsers.add_parser('list-devices', help='List all found devices.')
-
     start_parser = subparsers.add_parser('start', help='Start communication with the device.')
-    start_parser.add_argument('--port', type=str, help='Serial port to use.')
     start_parser.add_argument('--baudrate', type=int, default=115200, help='Baud rate to use. Default: 115200')
     start_parser.add_argument('--debug', action='store_true', help='Use stdin/stdout instead of serial.')
 
@@ -38,13 +35,7 @@ if __name__ == "__main__":
             print(f"Volume: {volume.get_volume()}")
             print(f"Type: {volume.get_type()}\n")
 
-    elif args.command == 'list-devices':
-        print("=== Found ports ===")
-        for port in Communicator.get_ports():
-            print(port)
-
     elif args.command == 'start':
-        config['port'] = args.port
         config['baudrate'] = args.baudrate
         config['debug'] = args.debug
 

@@ -1,3 +1,6 @@
+# Device name
+device_name: Volume Mixer
+
 # Display the master volume
 master: true
 

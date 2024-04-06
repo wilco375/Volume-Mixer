@@ -6,8 +6,6 @@ if sys.platform == 'win32':
     from ctypes import POINTER, cast
     from comtypes import CLSCTX_ALL
     from pycaw.pycaw import AudioUtilities, ISimpleAudioVolume, IAudioEndpointVolume
-elif sys.platform == 'linux':
-    import os
 
 
 class Volume(ABC):
@@ -90,7 +88,6 @@ class VolumeProvider:
         :type config: dict
         """
         self.is_windows = sys.platform == 'win32'
-        self.is_linux = sys.platform == 'linux'
         self.config = config
         self.master = None
         self.applications = None
@@ -123,14 +120,6 @@ class VolumeProvider:
                 except (COMError, OSError):
                     # Sometimes, getting the sessions fails
                     retry += 1
-        elif self.is_linux:
-            sink_inputs = [line for line in os.popen('pactl list sink-inputs').read().split('\n') if "Sink Input" in line]
-            for sink_input in sink_inputs:
-                volume = PulseAudioApplicationVolume(self.config, int(sink_input.split('#')[1]))
-                if volume.get_binary() not in applications:
-                    applications[volume.get_binary()] = volume
-                else:
-                    applications[volume.get_binary()].add_application(sink_input)
         else:
             raise NotImplementedError
         applications = list(applications.values())
@@ -161,8 +150,6 @@ class VolumeProvider:
 
         if self.is_windows:
             self.master = WindowsMasterVolume(self.config)
-        elif self.is_linux:
-            self.master = PulseAudioMasterVolume(self.config)
         else:
             raise NotImplementedError
         return self.master
@@ -223,26 +210,6 @@ class WindowsMasterVolume(Volume):
             self.interface.SetMasterVolumeLevelScalar(min(1.0, max(0.0, volume / 100)), None)
         except (COMError, OSError):
             return False
-
-    def get_type(self):
-        return "master"
-
-
-class PulseAudioMasterVolume(Volume):
-    def get_name(self):
-        return "Main"
-
-    def get_binary(self):
-        return None
-
-    def get_volume(self):
-        sinks = os.popen("pactl list sinks").read()
-        for line in sinks.split("\n"):
-            if "Volume:" in line:
-                return int(line.split("%")[0].split(" ")[-1])
-
-    def set_volume(self, volume):
-        os.system(f"pactl set-sink-volume @DEFAULT_SINK@ {min(100, max(0, volume))}%")
 
     def get_type(self):
         return "master"
@@ -310,66 +277,3 @@ class WindowsApplicationVolume(Volume):
     def add_application(self, session):
         self.sessions.append(session)
         self.interfaces.append(session._ctl.QueryInterface(ISimpleAudioVolume))
-
-
-class PulseAudioApplicationVolume(Volume):
-    def __init__(self, config, input):
-        """
-        :param config: configuration
-        :type config: dict
-        :param input: sink input
-        :type input: int
-        """
-        super().__init__(config)
-        self.inputs = [input]
-        self.name = None
-        self.binary = None
-
-    def get_name(self):
-        if self.name is not None:
-            return self.name
-        else:
-            sinks = os.popen("pactl list sink-inputs").read()
-            is_application = False
-            for line in sinks.split("\n"):
-                if f"Sink Input #{self.inputs[0]}" in line:
-                    is_application = True
-
-                if "application.name = " in line and is_application:
-                    self.name = line.split('"')[-2]
-                    return self.name
-        return None
-
-    def get_binary(self):
-        if self.binary is not None:
-            return self.binary
-        else:
-            sinks = os.popen("pactl list sink-inputs").read()
-            is_application = False
-            for line in sinks.split("\n"):
-                if f"Sink Input #{self.inputs[0]}" in line:
-                    is_application = True
-
-                if "application.process.binary = " in line and is_application:
-                    self.binary = line.split('"')[-2]
-                    return self.binary
-
-    def get_volume(self):
-        sinks = os.popen("pactl list sink-inputs").read()
-        is_application = False
-        for line in sinks.split("\n"):
-            if f"Sink Input #{self.inputs[0]}" in line:
-                is_application = True
-
-            if "Volume:" in line and is_application:
-                return int(line.split("%")[0].split(" ")[-1])
-
-    def set_volume(self, volume):
-        for input in self.inputs:
-            os.system(f"pactl set-sink-input-volume {input} {min(100, max(0, volume))}%")
-
-    def get_type(self):
-        return "application"
-
-    def add_application(self, input):
-        self.inputs.append(input)

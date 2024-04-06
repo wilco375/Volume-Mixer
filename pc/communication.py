@@ -1,6 +1,9 @@
 from volume import VolumeProvider
+from utilization import UtilizationProvider
 import serial
 import time
+import subprocess
+import re
 from serial.tools.list_ports import comports
 
 
@@ -16,16 +19,30 @@ class Communicator:
         """
         self.enabled = False
         self.mode = 'stdin' if config['debug'] else 'serial'
-        self.provider = VolumeProvider(config)
+        self.volume_provider = VolumeProvider(config)
+        self.utilization_provider = UtilizationProvider(config)
         self.serial = None
-        self.port = config['port']
+        self.port = self.get_com_port(config['device_name'])
 
     @staticmethod
-    def get_ports():
+    def get_com_port(device_name):
         """
-        Get all available serial ports
+        Get COM port of Bluetooth device in config
         """
-        return [port.device for port in comports()]
+        device_name = re.sub(r'[^a-zA-Z0-9\s]', '', device_name)
+        device_ids = subprocess.check_output(['powershell.exe', f'Get-WmiObject -query "select HardwareID from Win32_PnPEntity where Caption = \'{device_name}\' and PNPClass = \'Bluetooth\'" | Select-Object -ExpandProperty HardwareID']).decode('utf-8').split('\r\n')
+        device_ids = [device_id for device_id in device_ids if device_id != '']
+        com_devices = comports()
+
+        for device_id in device_ids:
+            device_id = device_id.split('Dev_')[1]
+            
+            for com_device in com_devices:
+                com_hwid = com_device.hwid.split('_')
+                if (len(com_hwid) < 2):
+                    continue
+                if com_hwid[-2].endswith(device_id):
+                    return com_device.device
 
     def start_communication(self):
         """
@@ -35,16 +52,10 @@ class Communicator:
         while self.enabled:
             try:
                 if self.mode == 'serial' and self.serial is None:
-                    port = self.port
-                    if port is None:
-                        ports = self.get_ports()
-                        if len(ports) > 0:
-                            port = ports[0]
-
-                        self.port = port
                     self.serial = serial.Serial(self.port, baudrate=115200, timeout=5)
 
                     self._send_applications()
+
                     while self.enabled:
                         if self._receive_volume():
                             self._send_applications()
@@ -67,14 +78,27 @@ class Communicator:
         :return: volumes
         :rtype: [Volume]
         """
-        return self.provider.get_display(cache)
+        return self.volume_provider.get_display(cache)
+    
+    def _get_utilization(self):
+        """
+        Get utilization to send
+        :return: utilization
+        :rtype: [Utilization]
+        """
+        return self.utilization_provider.get_utilization()
 
     def _send_applications(self):
         """
         Send active sound applications and their volumes in format "<program name>,<program volume (0-100)>,<program name>,<program volume (0-100)>,..."
         """
-        data = [f"{volume.get_display_name()},{volume.get_volume()}"
-                for volume in self._get_volumes(False)]
+        data = [
+            str(self._get_utilization().get_cpu_usage()) + '%',
+            str(self._get_utilization().get_gpu_usage()) + '%',
+            str(self._get_utilization().get_ram_usage()) + '/' + str(self._get_utilization().get_ram_total()),
+        ]
+        data = data.extend([f"{volume.get_display_name()},{volume.get_volume()}"
+                for volume in self._get_volumes(False)])
         data = ','.join(data) + '\n'
         if self.mode == 'serial':
             self.serial.write(data.encode())
