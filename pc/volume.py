@@ -177,7 +177,7 @@ class VolumeProvider:
         :return: all active volumes
         :rtype: [Volume]
         """
-        return self.get_all(cache)[0:self.config['max_apps']]
+        return self.get_all(cache)
 
 
 class WindowsMasterVolume(Volume):

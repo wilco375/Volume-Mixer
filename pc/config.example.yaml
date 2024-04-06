@@ -7,9 +7,6 @@ master: true
 # Display applications
 applications: true
 
-# Number of applications to send to the display
-max_apps: 3
-
 # Convert first letter of display names to uppercase
 capitalize_names: true
 

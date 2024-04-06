@@ -2,3 +2,4 @@ pyserial
 pyyaml
 pycaw; sys_platform == 'win32'
 psutil
+infi.systray
