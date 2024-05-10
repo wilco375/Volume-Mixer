@@ -14,7 +14,6 @@ class Utilization(ABC):
         """
         self.config = config
 
-    @abstractmethod
     def get_cpu_usage(self):
         """
         Get the current CPU utilization
@@ -32,7 +31,6 @@ class Utilization(ABC):
         """
         return NotImplementedError
 
-    @abstractmethod
     def get_ram_usage(self):
         """
         Get the amount of RAM currently in use
@@ -41,7 +39,6 @@ class Utilization(ABC):
         """
         return round(psutil.virtual_memory().used / 1073741824, 1)
 
-    @abstractmethod
     def get_ram_total(self):
         """
         Get the total amount of RAM available

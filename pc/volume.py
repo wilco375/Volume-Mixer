@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import sys
+import yaml
 
 if sys.platform == 'win32':
     from _ctypes import COMError
@@ -33,10 +34,10 @@ class Volume(ABC):
             name = self.config['display_names'][self.get_binary()]
         else:
             name = self.get_name()
-        shorted = name[0:4]
+        formatted = name.replace(',', '')
         if self.config['capitalize_names']:
-            shorted = shorted.capitalize()
-        return shorted.replace(',', '').ljust(4, ' ')
+            formatted = formatted.capitalize()
+        return formatted
 
     @abstractmethod
     def get_binary(self):
@@ -92,7 +93,7 @@ class VolumeProvider:
         self.master = None
         self.applications = None
 
-    def get_applications(self, cache=True):
+    def get_applications(self, cache=True, add_blacklisted=False):
         """
         Get all active applications outputting volume
         :param cache: use cached list of applications if available
@@ -131,7 +132,7 @@ class VolumeProvider:
             if app in applications_binaries:
                 ordered_applications.append(applications[applications_binaries.index(app)])
         for application in applications:
-            if application not in ordered_applications and application.get_binary() not in self.config['blacklist']:
+            if application not in ordered_applications and (add_blacklisted or application.get_binary() not in self.config['blacklist']):
                 ordered_applications.append(application)
 
         self.applications = ordered_applications
@@ -178,7 +179,17 @@ class VolumeProvider:
         :rtype: [Volume]
         """
         return self.get_all(cache)
+    
+    def update_config(self):
+        # Clear cache
+        self.applications = None
 
+        # Write config
+        with open(self.config["path"], 'w') as f:
+            config_to_write = {
+                k: v for k, v in self.config.items() if k not in ["path", "baudrate", "debug"] 
+            }
+            yaml.dump(config_to_write, f)
 
 class WindowsMasterVolume(Volume):
     def __init__(self, config):

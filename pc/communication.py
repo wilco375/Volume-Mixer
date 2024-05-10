@@ -54,12 +54,12 @@ class Communicator:
                 if self.mode == 'serial' and self.serial is None:
                     self.serial = serial.Serial(self.port, baudrate=115200, timeout=5)
 
-                    self._send_applications()
+                    self.send_applications()
 
                     while self.enabled:
                         if self._receive_volume():
-                            self._send_applications()
-            except serial.SerialException:
+                            self.send_applications()
+            except (serial.SerialException, serial.serialutil.SerialException):
                 print("Error: No device found. Trying again after 10s...")
                 self.serial = None
                 time.sleep(10)
@@ -88,7 +88,7 @@ class Communicator:
         """
         return self.utilization_provider.get_utilization()
 
-    def _send_applications(self):
+    def send_applications(self):
         """
         Send active sound applications and their volumes in format "<program name>,<program volume (0-100)>,<program name>,<program volume (0-100)>,..."
         """
