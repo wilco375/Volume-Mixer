@@ -11,7 +11,6 @@ class Communicator:
     """
     Communicator class
     """
-
     def __init__(self, config):
         """
         :param config: configuration
@@ -92,13 +91,15 @@ class Communicator:
         """
         Send active sound applications and their volumes in format "<program name>,<program volume (0-100)>,<program name>,<program volume (0-100)>,..."
         """
+        master_volume = [vol for vol in self._get_volumes(False) if vol.get_type() == 'master']
         data = [
             str(self._get_utilization().get_cpu_usage()) + '%',
             str(self._get_utilization().get_gpu_usage()) + '%',
             str(self._get_utilization().get_ram_usage()) + '/' + str(self._get_utilization().get_ram_total()),
+            str(master_volume[0].get_volume()) if len(master_volume) > 0 else 0
         ]
-        data = data.extend([f"{volume.get_display_name()},{volume.get_volume()}"
-                for volume in self._get_volumes(False)])
+        data.extend([f"{volume.get_display_name()},{volume.get_volume()}"
+                for volume in self._get_volumes(False) if volume.get_type() == 'application'])
         data = ','.join(data) + '\n'
         if self.mode == 'serial':
             self.serial.write(data.encode())
@@ -119,7 +120,7 @@ class Communicator:
             if volume == '':
                 # Probably timed out
                 return True
-            program = int(volume.split(',')[0])
+            program = int(volume.split(',')[0]) + 1
             program_volume = int(volume.split(',')[1])
             self._get_volumes()[program].set_volume(program_volume)
         except (UnicodeDecodeError, IndexError, ValueError):

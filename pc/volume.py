@@ -129,7 +129,7 @@ class VolumeProvider:
         applications_binaries = [application.get_binary() for application in applications]
         ordered_applications = []
         for app in self.config['priority']:
-            if app in applications_binaries:
+            if app in applications_binaries and (add_blacklisted or app not in self.config['blacklist']):
                 ordered_applications.append(applications[applications_binaries.index(app)])
         for application in applications:
             if application not in ordered_applications and (add_blacklisted or application.get_binary() not in self.config['blacklist']):
@@ -178,6 +178,11 @@ class VolumeProvider:
         :return: all active volumes
         :rtype: [Volume]
         """
+        if not cache:
+            with open(self.config['path'], 'r') as f:
+                c = dict(yaml.safe_load(f))
+            for (k,v) in c.items():
+                self.config[k] = v 
         return self.get_all(cache)
     
     def update_config(self):
