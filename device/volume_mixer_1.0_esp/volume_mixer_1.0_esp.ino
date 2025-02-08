@@ -262,7 +262,7 @@ void drawVolumeText(int index, int volume) {
   int clearWidth = tft.textWidth("100%") + 4;
   int clearHeight = tft.fontHeight(1) - 4;
   //writeln("Drawing rect at x:" + String(clearX) + ", y:" + String(clearY) + ", w:" + String(clearWidth) + ", h:" + String(clearHeight));
-  tft.fillRoundRect(clearX, clearY, clearWidth, clearHeight, 4, 0x3186);
+  tft.fillRoundRect(clearX-6, clearY, clearWidth+8, clearHeight+2, 4, 0x3186);   // clears away volume procent data of all 4 locations.
 
   // Display percentage value
   char str[20];
