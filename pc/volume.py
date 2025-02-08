@@ -31,12 +31,11 @@ class Volume(ABC):
         Get the display name of the program
         """
         if self.get_binary() in self.config['display_names']:
-            name = self.config['display_names'][self.get_binary()]
+            formatted = self.config['display_names'][self.get_binary()]
         else:
-            name = self.get_name()
-        formatted = name.replace(',', '')
-        if self.config['capitalize_names']:
-            formatted = formatted.capitalize()
+            formatted = self.get_name().replace(',', '')
+            if self.config['capitalize_names']:
+                formatted = formatted.capitalize()
         return formatted
 
     @abstractmethod
