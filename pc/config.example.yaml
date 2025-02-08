@@ -10,6 +10,9 @@ applications: true
 # Convert first letter of display names to uppercase
 capitalize_names: true
 
+# Update screen timeout in seconds
+update_timeout: 5
+
 # Blacklisted applications that should not be displayed
 blacklist:
 - ShellExperienceHost.exe

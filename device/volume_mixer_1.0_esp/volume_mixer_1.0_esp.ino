@@ -16,7 +16,7 @@ TFT_eSPI tft = TFT_eSPI();                             // Invoke custom library
 BluetoothSerial SerialBT;           
            
 //    --- VARIABLES ---           
-#define BT_NAME "SoundMixer"                           // Bluetooth name 
+#define BT_NAME "Volume Mixer"                           // Bluetooth name 
 #define NUM_APP_ENCODERS 3           
 #define NUM_ENCODERS NUM_APP_ENCODERS + 2           
 #define VOL_BAR_WIDTH 100                              // Width of the vol_bar of the individual apps

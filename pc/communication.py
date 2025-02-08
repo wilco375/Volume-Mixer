@@ -17,11 +17,12 @@ class Communicator:
         :type config: dict
         """
         self.enabled = False
-        self.mode = 'stdin' if config['debug'] else 'serial'
+        self.mode = 'stdin' if 'debug' in config['debug'] and config['debug'] else 'serial'
         self.volume_provider = VolumeProvider(config)
         self.utilization_provider = UtilizationProvider(config)
         self.serial = None
         self.port = self.get_com_port(config['device_name'])
+        self.update_timeout = int(config['update_timeout']) if 'update_timeout' in config and config['update_timeout'] else 5
 
     @staticmethod
     def get_com_port(device_name):
@@ -51,7 +52,7 @@ class Communicator:
         while self.enabled:
             try:
                 if self.mode == 'serial' and self.serial is None:
-                    self.serial = serial.Serial(self.port, baudrate=115200, timeout=5)
+                    self.serial = serial.Serial(self.port, baudrate=115200, timeout=self.update_timeout)
 
                     self.send_applications()
 
